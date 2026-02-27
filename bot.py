@@ -1,3 +1,4 @@
+import aiosqlite 
 import asyncio
 import aiohttp
 import logging
@@ -14,7 +15,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # --- НАСТРОЙКИ ---
 # Вставь свой токен и данные базы
 TOKEN = "8653033022:AAFvthAhlqpc9wSDwYoa99D_vl5SQB4XBKU"
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/anime_db"
+DATABASE_URL = DATABASE_URL = "sqlite+aiosqlite:///database.db"
+
 
 Base = declarative_base()
 
@@ -32,6 +34,18 @@ engine = create_async_engine(DATABASE_URL)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+async def main():
+    await init_db()  # Создаем таблицы при старте
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 
