@@ -11,6 +11,8 @@ from sqlalchemy import Column, Integer, String, BigInteger, delete, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
 # --- НАСТРОЙКИ ---
 # Вставь свой токен и данные базы
