@@ -11,14 +11,10 @@ from sqlalchemy import Column, Integer, String, BigInteger, delete, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import sys
-sys.stdout.reconfigure(line_buffering=True)
 
 # --- НАСТРОЙКИ ---
-# Вставь свой токен и данные базы
 TOKEN = "8653033022:AAFvthAhlqpc9wSDwYoa99D_vl5SQB4XBKU"
-DATABASE_URL = DATABASE_URL = "sqlite+aiosqlite:///database.db"
-
+DATABASE_URL = "sqlite+aiosqlite:///database.db"  # SQLite
 
 Base = declarative_base()
 
@@ -36,18 +32,6 @@ engine = create_async_engine(DATABASE_URL)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-async def main():
-    await init_db()  # Создаем таблицы при старте
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 
@@ -69,18 +53,15 @@ def get_time_left(date_str):
     except: return "Ошибка даты"
 
 async def get_shikimori_data(path):
-    # Добавляем заголовки, чтобы прикидыться браузером/приложением
     headers = {
         'User-Agent': 'TukTukAnimeBot/1.0',
         'Accept': 'application/json'
     }
     async with aiohttp.ClientSession(headers=headers) as session:
-        # Чистим путь и собираем URL
         clean_path = path.lstrip('/')
-        url = f"https://shikimori.one/api/{clean_path}"
+        url = f"https://shikimori.io/api/{clean_path}"
         
         try:
-            # Ставим таймаут, чтобы бот не висел вечно
             async with session.get(url, timeout=15) as resp:
                 if resp.status == 200:
                     return await resp.json()
@@ -89,7 +70,6 @@ async def get_shikimori_data(path):
         except Exception as e:
             logging.error(f"Сетевая ошибка: {e}")
             return None
-
 
 # --- ОБРАБОТКА КНОПОК МЕНЮ ---
 
@@ -156,12 +136,11 @@ async def smart_search(message: types.Message):
 
 @dp.callback_query(F.data.startswith("sub_"))
 async def save_sub(callback: types.CallbackQuery):
-    """Сохранение подписки в PostgreSQL"""
+    """Сохранение подписки"""
     anime_id = int(callback.data.split("_")[1])
     anime = await get_shikimori_data(f"animes/{anime_id}")
     
     async with async_session() as session:
-        # Проверка на дубликаты
         stmt = select(Subscription).where(Subscription.user_id == callback.from_user.id, Subscription.anime_id == anime_id)
         existing = await session.execute(stmt)
         if existing.scalar():
@@ -180,7 +159,7 @@ async def save_sub(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data.startswith("del_"))
 async def process_deletion(callback: types.CallbackQuery):
-    """Удаление подписки из PostgreSQL"""
+    """Удаление подписки"""
     sub_id = int(callback.data.split("_")[1])
     async with async_session() as session:
         await session.execute(delete(Subscription).where(Subscription.id == sub_id))
