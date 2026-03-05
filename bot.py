@@ -191,7 +191,7 @@ async def main():
 
     # Запускаем планировщик уведомлений
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(check_updates, 'interval', hours=3)
+    scheduler.add_job(check_updates, 'interval', minutes=5)
     scheduler.start()
 
     logging.basicConfig(level=logging.INFO)
